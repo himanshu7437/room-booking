@@ -11,6 +11,7 @@ import {
 
 // We'll create this middleware soon (for JWT admin check)
 import { protectAdmin } from "../middleware/auth.middleware.js";
+import { uploadRoomImages } from '../middleware/upload.middleware.js';
 
 const router = express.Router();
 
@@ -21,8 +22,8 @@ router.get("/:id", getRoomById);
 /* ---------- ADMIN-ONLY ROUTES ---------- */
 router.use(protectAdmin);           // ← All routes below are protected
 
-router.post("/", createRoom);
-router.put("/:id", updateRoom);
+router.post('/', protectAdmin, uploadRoomImages, createRoom);
+router.put('/:id', protectAdmin, uploadRoomImages, updateRoom);
 router.delete("/:id", deleteRoom);
 
 // Optional future route (we'll add soon)

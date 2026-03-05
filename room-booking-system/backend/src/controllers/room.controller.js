@@ -1,12 +1,11 @@
-import Room from '../models/Room.model.js';  // ← note: your import was Rooms.model.js — probably typo?
+import Room from '../models/Room.model.js';
 
 /* ---------------- GET ALL ROOMS (public) ---------------- */
 export const getAllRooms = async (req, res) => {
   try {
-    // Only show active rooms by default
     const rooms = await Room.find({ isActive: true })
-      .select('name description images capacity pricePerNight amenities isActive') // ← limit fields (no __v etc.)
-      .sort({ createdAt: -1 }); // optional: newest first
+      .select('name description images capacity pricePerNight amenities isActive')
+      .sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
@@ -14,7 +13,7 @@ export const getAllRooms = async (req, res) => {
       data: rooms,
     });
   } catch (error) {
-    console.error('getAllRooms error:', error); // ← better logging
+    console.error('getAllRooms error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error while fetching rooms',
@@ -60,16 +59,31 @@ export const getRoomById = async (req, res) => {
 /* ---------------- CREATE ROOM (admin) ---------------- */
 export const createRoom = async (req, res) => {
   try {
-    // Basic manual validation (later use Joi/Zod middleware)
-    const { name, description, pricePerNight, capacity } = req.body;
-    if (!name || !description || !pricePerNight || !capacity) {
+    // Files are available in req.files (array from uploadRoomImages.array())
+    const imagePaths = req.files?.length > 0
+      ? req.files.map(file => `/uploads/rooms/images/${file.filename}`)
+      : [];
+
+    // Build room data from body + images
+    const roomData = {
+      name: req.body.name,
+      description: req.body.description,
+      pricePerNight: Number(req.body.pricePerNight),
+      capacity: Number(req.body.capacity),
+      amenities: req.body.amenities ? JSON.parse(req.body.amenities) : [], // if sent as string
+      images: imagePaths,
+      isActive: req.body.isActive !== 'false', // default true
+    };
+
+    // Basic required fields check
+    if (!roomData.name || !roomData.description || !roomData.pricePerNight || !roomData.capacity) {
       return res.status(400).json({
         success: false,
         message: "Name, description, pricePerNight, and capacity are required",
       });
     }
 
-    const room = await Room.create(req.body);
+    const room = await Room.create(roomData);
 
     res.status(201).json({
       success: true,
@@ -88,9 +102,29 @@ export const createRoom = async (req, res) => {
 /* ---------------- UPDATE ROOM (admin) ---------------- */
 export const updateRoom = async (req, res) => {
   try {
+    const updateData = {
+      name: req.body.name,
+      description: req.body.description,
+      pricePerNight: req.body.pricePerNight ? Number(req.body.pricePerNight) : undefined,
+      capacity: req.body.capacity ? Number(req.body.capacity) : undefined,
+      amenities: req.body.amenities ? JSON.parse(req.body.amenities) : undefined,
+      isActive: req.body.isActive !== undefined ? req.body.isActive !== 'false' : undefined,
+    };
+
+    // Handle new images (replace or append - here we replace for simplicity)
+    if (req.files?.length > 0) {
+      updateData.images = req.files.map(file => `/uploads/rooms/images/${file.filename}`);
+      // If you want to APPEND instead, uncomment and adjust:
+      // const existing = await Room.findById(req.params.id);
+      // updateData.images = [...(existing?.images || []), ...newPaths];
+    }
+
+    // Remove undefined fields to avoid overwriting with undefined
+    Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
+
     const room = await Room.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      updateData,
       { new: true, runValidators: true }
     ).select('name description images capacity pricePerNight amenities isActive');
 
@@ -127,11 +161,9 @@ export const deleteRoom = async (req, res) => {
       });
     }
 
-    // Soft delete preferred for bookings system
+    // Soft delete
     room.isActive = false;
     await room.save();
-
-    // Alternative: hard delete → await Room.findByIdAndDelete(req.params.id);
 
     res.status(200).json({
       success: true,

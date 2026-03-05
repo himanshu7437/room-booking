@@ -10,6 +10,7 @@ import {
 } from '../controllers/event.controller.js';
 
 import { protectAdmin } from '../middleware/auth.middleware.js';
+import { uploadEventMedia } from '../middleware/upload.middleware.js';
 
 const router = express.Router();
 
@@ -21,8 +22,8 @@ router.get('/:id', getEventById);                 // detail view
 router.use(protectAdmin);
 
 router.get('/', getAllEvents);
-router.post('/', createEvent);
-router.put('/:id', updateEvent);
+router.post('/', protectAdmin, uploadEventMedia, createEvent);
+router.put('/:id', protectAdmin, uploadEventMedia, updateEvent);
 router.patch('/:id/publish', togglePublish);      // PATCH for toggle
 router.delete('/:id', deleteEvent);
 
