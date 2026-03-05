@@ -17,7 +17,7 @@ const server = http.createServer(app);
 /* ---------- Setup Socket.io ---------- */
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: process.env.CLIENT_URL || "*", 
   },
 });
 
@@ -29,6 +29,9 @@ io.on("connection", (socket) => {
     console.log("User disconnected");
   });
 });
+
+// Expose io to app (for controllers)
+app.set('io', io); // NEW
 
 /* ---------- Start Server ---------- */
 server.listen(PORT, () => {

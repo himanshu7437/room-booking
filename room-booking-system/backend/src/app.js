@@ -14,6 +14,9 @@ app.use(express.json());
 // Enable CORS
 app.use(cors());
 
+// Serve static uploads (for photos/videos)
+app.use('/uploads', express.static(path.join(process.cwd(), 'src/uploads')));
+
 // Basic rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -30,5 +33,12 @@ app.get("/", (req, res) => {
 
 /* ROUTES */
 app.use("/api/rooms", roomRoutes);
+
+
+// Global error handler (NEW: catches 404s/unhandled errors)
+app.use((err, req, res, next) => { // NEW
+  console.error(err.stack); // NEW
+  res.status(500).json({ message: 'Something went wrong!' }); // NEW
+});
 
 export default app;
