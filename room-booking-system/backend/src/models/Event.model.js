@@ -1,4 +1,5 @@
-import mongoose from "mongoose";
+// src/models/Event.model.js
+import mongoose from 'mongoose';
 
 const eventSchema = new mongoose.Schema(
   {
@@ -14,28 +15,35 @@ const eventSchema = new mongoose.Schema(
     eventDate: {
       type: Date,
       required: true,
-      index: true,              // ← useful for sorting upcoming events
+      index: true,
     },
     images: [{
-      type: String,             // paths or URLs
+      type: String,           // paths: "/uploads/events/images/xxx.jpg" or cloud URLs
     }],
-    vlog: {                     // ← new structured field instead of just videoUrl
+    vlog: {
       type: {
         type: String,
-        enum: ["upload", "youtube", "none"],
-        default: "none",
+        enum: ['none', 'youtube', 'upload'],
+        default: 'none',
       },
       url: {
         type: String,
         trim: true,
+        // e.g. "https://youtu.be/abc123" or "/uploads/events/videos/xyz.mp4"
       },
     },
-    isPublished: {              // ← added (client wants publish button)
+    isPublished: {
       type: Boolean,
       default: false,
+      index: true,
     },
   },
   { timestamps: true }
 );
 
-export default mongoose.model("Event", eventSchema);
+// Virtual for "upcoming" helper (optional)
+eventSchema.virtual('isUpcoming').get(function () {
+  return this.eventDate > new Date();
+});
+
+export default mongoose.model('Event', eventSchema);
