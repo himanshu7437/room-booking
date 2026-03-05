@@ -24,11 +24,10 @@ export const getPublishedEvents = async (req, res) => {
   }
 };
 
-/* ---------------- GET ALL EVENTS (admin only) ---------------- */
+/* ---------------- GET ALL EVENTS (admin) ---------------- */
 export const getAllEvents = async (req, res) => {
   try {
-    const events = await Event.find()
-      .sort({ eventDate: -1 });
+    const events = await Event.find().sort({ eventDate: -1 });
 
     res.status(200).json({
       success: true,
@@ -58,28 +57,14 @@ export const getEventById = async (req, res) => {
 /* ---------------- CREATE EVENT (admin) ---------------- */
 export const createEvent = async (req, res) => {
   try {
-    const {
-      title,
-      description,
-      eventDate,
-      vlogType = 'none',
-      vlogUrl = '',
-    } = req.body;
-
-    if (!title || !description || !eventDate) {
-      return res.status(400).json({
-        success: false,
-        message: 'Title, description, and eventDate are required',
-      });
-    }
-
-    // Images from eventImages field
     const imagePaths = req.files?.eventImages
       ? req.files.eventImages.map(file => `/uploads/events/images/${file.filename}`)
       : [];
 
-    // Video handling
-    let vlog = { type: vlogType, url: vlogUrl || '' };
+    let vlog = {
+      type: req.body.vlogType || 'none',
+      url: req.body.vlogUrl || '',
+    };
 
     if (req.files?.eventVideo?.length > 0) {
       const videoFile = req.files.eventVideo[0];
@@ -90,9 +75,8 @@ export const createEvent = async (req, res) => {
     }
 
     const event = await Event.create({
-      title,
-      description,
-      eventDate: new Date(eventDate),
+      ...req.body,
+      eventDate: new Date(req.body.eventDate),
       images: imagePaths,
       vlog,
       isPublished: false,
@@ -115,25 +99,26 @@ export const createEvent = async (req, res) => {
 /* ---------------- UPDATE EVENT (admin) ---------------- */
 export const updateEvent = async (req, res) => {
   try {
-    const updateData = {
-      title: req.body.title,
-      description: req.body.description,
-      eventDate: req.body.eventDate ? new Date(req.body.eventDate) : undefined,
-      vlog: req.body.vlogType || req.body.vlogUrl
-        ? {
-            type: req.body.vlogType || 'none',
-            url: req.body.vlogUrl || '',
-          }
-        : undefined,
-      isPublished: req.body.isPublished !== undefined ? req.body.isPublished === 'true' : undefined,
-    };
+    const updateData = { ...req.body };
 
-    // Handle new images (replace for simplicity)
+    if (updateData.eventDate) {
+      updateData.eventDate = new Date(updateData.eventDate);
+    }
+
+    // Handle vlog update
+    if (updateData.vlogType || updateData.vlogUrl) {
+      updateData.vlog = {
+        type: updateData.vlogType || 'none',
+        url: updateData.vlogUrl || '',
+      };
+    }
+
+    // Handle images (replace)
     if (req.files?.eventImages?.length > 0) {
       updateData.images = req.files.eventImages.map(file => `/uploads/events/images/${file.filename}`);
     }
 
-    // Handle new video (replace if uploaded)
+    // Handle video (replace)
     if (req.files?.eventVideo?.length > 0) {
       updateData.vlog = {
         type: 'upload',
@@ -141,14 +126,13 @@ export const updateEvent = async (req, res) => {
       };
     }
 
-    // Clean undefined fields
+    // Clean undefined
     Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
 
-    const event = await Event.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      { new: true, runValidators: true }
-    );
+    const event = await Event.findByIdAndUpdate(req.params.id, updateData, {
+      new: true,
+      runValidators: true,
+    });
 
     if (!event) {
       return res.status(404).json({ success: false, message: 'Event not found' });
@@ -196,7 +180,7 @@ export const deleteEvent = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Event not found' });
     }
 
-    // Optional: delete files from disk (future improvement)
+    // Optional future: delete files
     // event.images.forEach(img => fs.unlinkSync(path.join(process.cwd(), img)));
     // if (event.vlog.type === 'upload') fs.unlinkSync(path.join(process.cwd(), event.vlog.url));
 

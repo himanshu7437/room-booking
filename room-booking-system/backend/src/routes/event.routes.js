@@ -12,6 +12,9 @@ import {
 import { protectAdmin } from '../middleware/auth.middleware.js';
 import { uploadEventMedia } from '../middleware/upload.middleware.js';
 
+import { validate } from '../middleware/validate.middleware.js';
+import { createEventSchema, updateEventSchema } from '../validations/schemas.js';
+
 const router = express.Router();
 
 // Public routes
@@ -22,9 +25,9 @@ router.get('/:id', getEventById);                 // detail view
 router.use(protectAdmin);
 
 router.get('/', getAllEvents);
-router.post('/', protectAdmin, uploadEventMedia, createEvent);
-router.put('/:id', protectAdmin, uploadEventMedia, updateEvent);
-router.patch('/:id/publish', togglePublish);      // PATCH for toggle
+router.post('/', protectAdmin, uploadEventMedia, validate(createEventSchema), createEvent);
+router.put('/:id', protectAdmin, uploadEventMedia, validate(updateEventSchema), updateEvent);
+router.patch('/:id/publish', protectAdmin, togglePublish);
 router.delete('/:id', deleteEvent);
 
 export default router;

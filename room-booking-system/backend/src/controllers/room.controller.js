@@ -31,14 +31,14 @@ export const getRoomById = async (req, res) => {
     if (!room) {
       return res.status(404).json({
         success: false,
-        message: "Room not found",
+        message: 'Room not found',
       });
     }
 
     if (!room.isActive) {
       return res.status(403).json({
         success: false,
-        message: "This room is currently not available",
+        message: 'This room is currently not available',
       });
     }
 
@@ -59,29 +59,24 @@ export const getRoomById = async (req, res) => {
 /* ---------------- CREATE ROOM (admin) ---------------- */
 export const createRoom = async (req, res) => {
   try {
-    // Files are available in req.files (array from uploadRoomImages.array())
     const imagePaths = req.files?.length > 0
       ? req.files.map(file => `/uploads/rooms/images/${file.filename}`)
       : [];
 
-    // Build room data from body + images
+    // Joi already validated body → safe to use directly
     const roomData = {
-      name: req.body.name,
-      description: req.body.description,
+      ...req.body,
+      images: imagePaths,
       pricePerNight: Number(req.body.pricePerNight),
       capacity: Number(req.body.capacity),
-      amenities: req.body.amenities ? JSON.parse(req.body.amenities) : [], // if sent as string
-      images: imagePaths,
-      isActive: req.body.isActive !== 'false', // default true
+      // amenities might come as string from form-data → parse if needed
+      amenities: Array.isArray(req.body.amenities)
+        ? req.body.amenities
+        : req.body.amenities
+          ? JSON.parse(req.body.amenities)
+          : [],
+      isActive: req.body.isActive !== 'false', // form-data sends strings
     };
-
-    // Basic required fields check
-    if (!roomData.name || !roomData.description || !roomData.pricePerNight || !roomData.capacity) {
-      return res.status(400).json({
-        success: false,
-        message: "Name, description, pricePerNight, and capacity are required",
-      });
-    }
 
     const room = await Room.create(roomData);
 
@@ -91,8 +86,7 @@ export const createRoom = async (req, res) => {
     });
   } catch (error) {
     console.error('createRoom error:', error);
-    const status = error.name === 'ValidationError' ? 400 : 500;
-    res.status(status).json({
+    res.status(error.name === 'ValidationError' ? 400 : 500).json({
       success: false,
       message: error.message || 'Failed to create room',
     });
@@ -102,36 +96,42 @@ export const createRoom = async (req, res) => {
 /* ---------------- UPDATE ROOM (admin) ---------------- */
 export const updateRoom = async (req, res) => {
   try {
-    const updateData = {
-      name: req.body.name,
-      description: req.body.description,
-      pricePerNight: req.body.pricePerNight ? Number(req.body.pricePerNight) : undefined,
-      capacity: req.body.capacity ? Number(req.body.capacity) : undefined,
-      amenities: req.body.amenities ? JSON.parse(req.body.amenities) : undefined,
-      isActive: req.body.isActive !== undefined ? req.body.isActive !== 'false' : undefined,
-    };
+    const updateData = { ...req.body };
 
-    // Handle new images (replace or append - here we replace for simplicity)
-    if (req.files?.length > 0) {
-      updateData.images = req.files.map(file => `/uploads/rooms/images/${file.filename}`);
-      // If you want to APPEND instead, uncomment and adjust:
-      // const existing = await Room.findById(req.params.id);
-      // updateData.images = [...(existing?.images || []), ...newPaths];
+    // Convert numbers if present
+    if (updateData.pricePerNight) updateData.pricePerNight = Number(updateData.pricePerNight);
+    if (updateData.capacity) updateData.capacity = Number(updateData.capacity);
+
+    // Parse amenities if string
+    if (updateData.amenities && !Array.isArray(updateData.amenities)) {
+      updateData.amenities = JSON.parse(updateData.amenities);
     }
 
-    // Remove undefined fields to avoid overwriting with undefined
-    Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
+    // Convert isActive from string if needed
+    if (updateData.isActive !== undefined) {
+      updateData.isActive = updateData.isActive !== 'false';
+    }
 
-    const room = await Room.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      { new: true, runValidators: true }
-    ).select('name description images capacity pricePerNight amenities isActive');
+    // Handle image replacement
+    if (req.files?.length > 0) {
+      updateData.images = req.files.map(file => `/uploads/rooms/images/${file.filename}`);
+      // To append instead: fetch existing and concat (optional)
+    }
+
+    // Remove undefined keys (safe now that Joi stripped unknowns)
+    Object.keys(updateData).forEach(
+      key => updateData[key] === undefined && delete updateData[key]
+    );
+
+    const room = await Room.findByIdAndUpdate(req.params.id, updateData, {
+      new: true,
+      runValidators: true,
+    }).select('name description images capacity pricePerNight amenities isActive');
 
     if (!room) {
       return res.status(404).json({
         success: false,
-        message: "Room not found",
+        message: 'Room not found',
       });
     }
 
@@ -141,8 +141,7 @@ export const updateRoom = async (req, res) => {
     });
   } catch (error) {
     console.error('updateRoom error:', error);
-    const status = error.name === 'ValidationError' ? 400 : 500;
-    res.status(status).json({
+    res.status(error.name === 'ValidationError' ? 400 : 500).json({
       success: false,
       message: error.message || 'Failed to update room',
     });
@@ -157,17 +156,16 @@ export const deleteRoom = async (req, res) => {
     if (!room) {
       return res.status(404).json({
         success: false,
-        message: "Room not found",
+        message: 'Room not found',
       });
     }
 
-    // Soft delete
     room.isActive = false;
     await room.save();
 
     res.status(200).json({
       success: true,
-      message: "Room deactivated successfully",
+      message: 'Room deactivated successfully',
     });
   } catch (error) {
     console.error('deleteRoom error:', error);

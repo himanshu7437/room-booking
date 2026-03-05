@@ -8,11 +8,13 @@ import {
 } from '../controllers/booking.controller.js';
 
 import { protectAdmin } from '../middleware/auth.middleware.js';
+import { validate } from '../middleware/validate.middleware.js';
+import { createBookingSchema } from '../validations/schemas.js';
 
 const router = express.Router();
 
 // Public routes
-router.post('/', createBooking);
+router.post('/', validate(createBookingSchema), createBooking);
 router.get('/:id/availability', checkRoomAvailability);  // /api/bookings/:roomId/availability?checkIn=...&checkOut=...
 
 // Admin protected routes
