@@ -2,6 +2,8 @@ import express from 'express'
 import cors from 'cors'
 import rateLimit from 'express-rate-limit'
 
+import roomRoutes from './routes/room.routes.js'
+
 const app = express();
 
 /* ----------------- Middlewares ----------------- */
@@ -25,5 +27,8 @@ app.use(limiter);
 app.get("/", (req, res) => {
   res.send("API Running");
 });
+
+/* ROUTES */
+app.use("/api/rooms", roomRoutes);
 
 export default app;
