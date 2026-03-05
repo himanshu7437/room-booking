@@ -1,34 +1,39 @@
 import jwt from 'jsonwebtoken';
+import Admin from '../models/Admin.model.js';
 
 export const protectAdmin = async (req, res, next) => {
-  try {
-    const token = req.headers.authorization?.split(' ')[1]; // Bearer token
+  let token;
 
-    if (!token) {
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer')
+  ) {
+    try {
+      token = req.headers.authorization.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+      // Fetch admin (without password)
+      req.admin = await Admin.findById(decoded.id).select('-password');
+
+      if (!req.admin) {
+        return res.status(401).json({
+          success: false,
+          message: 'Not authorized - admin not found',
+        });
+      }
+
+      next();
+    } catch (error) {
+      console.error('Token verification failed:', error);
       return res.status(401).json({
         success: false,
-        message: 'Not authorized - no token',
+        message: 'Not authorized - invalid token',
       });
     }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    // We'll fetch admin later when we have Admin model logic
-    // For now: just check if decoded has role or id
-    if (decoded.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized - admin access required',
-      });
-    }
-
-    req.admin = decoded; // attach to req for future use
-    next();
-  } catch (error) {
-    console.error('Auth error:', error);
-    res.status(401).json({
+  } else {
+    return res.status(401).json({
       success: false,
-      message: 'Not authorized - invalid token',
+      message: 'Not authorized - no token provided',
     });
   }
 };

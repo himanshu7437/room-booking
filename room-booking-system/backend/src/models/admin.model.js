@@ -1,4 +1,6 @@
+// src/models/Admin.model.js
 import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 
 const adminSchema = new mongoose.Schema(
   {
@@ -6,25 +8,38 @@ const adminSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      lowercase: true,          // ← added (prevents duplicate with different case)
+      lowercase: true,
       trim: true,
     },
     password: {
       type: String,
       required: true,
-      minlength: 8,             // ← optional but good practice
+      minlength: 8,
+      select: false, // don't return password in queries by default
     },
     role: {
       type: String,
-      enum: ["admin"],          // ← restrict to one value (future-proof if you add more roles)
+      enum: ["admin"],
       default: "admin",
     },
-    // Optional: lastLogin, resetToken, etc. can be added later
+    lastLogin: {
+      type: Date,
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-// Optional: index on email for faster lookup (already unique so not critical)
-adminSchema.index({ email: 1 });
+// Hash password before save (only if modified)
+adminSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
+
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+});
+
+// Method to compare password
+adminSchema.methods.comparePassword = async function (candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.password);
+};
 
 export default mongoose.model("Admin", adminSchema);
