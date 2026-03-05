@@ -4,6 +4,7 @@ import rateLimit from 'express-rate-limit'
 import path from 'path'
 import roomRoutes from './routes/room.routes.js'
 import authRoutes from './routes/auth.routes.js';
+import bookingRoutes from './routes/booking.routes.js';
 
 const app = express();
 
@@ -35,6 +36,7 @@ app.get("/", (req, res) => {
 /* ROUTES */
 app.use("/api/rooms", roomRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/bookings', bookingRoutes);
 
 // Global error handler (NEW: catches 404s/unhandled errors)
 app.use((err, req, res, next) => { // NEW
