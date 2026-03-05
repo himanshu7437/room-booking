@@ -2,38 +2,32 @@ import mongoose from "mongoose";
 
 const roomSchema = new mongoose.Schema(
   {
-    title: {
+    name: {                     // ← changed from "title" → more natural for rooms
       type: String,
       required: true,
+      trim: true,
     },
-
     description: {
       type: String,
       required: true,
+      trim: true,
     },
-
-    price: {
+    pricePerNight: {            // ← renamed for clarity (price → pricePerNight)
       type: Number,
       required: true,
+      min: 0,
     },
-
-    images: [
-      {
-        type: String,
-      },
-    ],
-
+    images: [{
+      type: String,             // file path or cloud URL (e.g. "/uploads/xxx.jpg" or "https://...")
+    }],
     capacity: {
       type: Number,
-      default: 2,
+      required: true,           // ← made required (default is ok but better explicit)
+      min: 1,
     },
-
-    amenities: [
-      {
-        type: String,
-      },
-    ],
-
+    amenities: [{
+      type: String,             // e.g. ["WiFi", "AC", "TV", "Breakfast"]
+    }],
     isActive: {
       type: Boolean,
       default: true,
