@@ -3,7 +3,7 @@ import Room from '../models/Room.model.js';
 /* ---------------- GET ALL ROOMS (public) ---------------- */
 export const getAllRooms = async (req, res) => {
   try {
-    const rooms = await Room.find({ isActive: true })
+    const rooms = await Room.find()
       .select('name description images capacity pricePerNight amenities isActive')
       .sort({ createdAt: -1 });
 
@@ -98,27 +98,34 @@ export const updateRoom = async (req, res) => {
   try {
     const updateData = { ...req.body };
 
-    // Convert numbers if present
+    // Convert numbers
     if (updateData.pricePerNight) updateData.pricePerNight = Number(updateData.pricePerNight);
     if (updateData.capacity) updateData.capacity = Number(updateData.capacity);
 
-    // Parse amenities if string
-    if (updateData.amenities && !Array.isArray(updateData.amenities)) {
-      updateData.amenities = JSON.parse(updateData.amenities);
+    // Parse amenities if sent as JSON string (from frontend)
+    if (updateData.amenities && typeof updateData.amenities === 'string') {
+      try {
+        updateData.amenities = JSON.parse(updateData.amenities);
+      } catch {
+        // fallback: if not valid JSON, treat as comma string
+        updateData.amenities = updateData.amenities
+          .split(',')
+          .map(a => a.trim())
+          .filter(Boolean);
+      }
     }
 
-    // Convert isActive from string if needed
+    // Handle isActive toggle (from checkbox)
     if (updateData.isActive !== undefined) {
-      updateData.isActive = updateData.isActive !== 'false';
+      updateData.isActive = updateData.isActive === 'true' || updateData.isActive === true;
     }
 
-    // Handle image replacement
+    // Handle new images (replace existing)
     if (req.files?.length > 0) {
       updateData.images = req.files.map(file => `/uploads/rooms/images/${file.filename}`);
-      // To append instead: fetch existing and concat (optional)
     }
 
-    // Remove undefined keys (safe now that Joi stripped unknowns)
+    // Clean undefined fields
     Object.keys(updateData).forEach(
       key => updateData[key] === undefined && delete updateData[key]
     );
@@ -154,24 +161,33 @@ export const deleteRoom = async (req, res) => {
     const room = await Room.findById(req.params.id);
 
     if (!room) {
-      return res.status(404).json({
+      return res.status(404).json({ success: false, message: 'Room not found' });
+    }
+
+    // Check if room has active/future bookings
+    const activeBookings = await Booking.countDocuments({
+      room: req.params.id,
+      checkOut: { $gte: new Date() }, // future or ongoing bookings
+      status: { $in: ['pending', 'confirmed'] }
+    });
+
+    if (activeBookings > 0) {
+      return res.status(400).json({
         success: false,
-        message: 'Room not found',
+        message: 'Cannot delete room with active or future bookings. Deactivate instead.',
       });
     }
 
+    // Soft delete (deactivate)
     room.isActive = false;
     await room.save();
 
     res.status(200).json({
       success: true,
-      message: 'Room deactivated successfully',
+      message: 'Room deactivated successfully (no active bookings found)',
     });
   } catch (error) {
     console.error('deleteRoom error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while deactivating room',
-    });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };

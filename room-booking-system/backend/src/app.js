@@ -23,7 +23,7 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'src/uploads')));
 // Basic rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 500,                    // much higher for dev/admin
 });
 
 app.use(limiter);

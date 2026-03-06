@@ -1,6 +1,6 @@
 import Booking from '../models/Booking.model.js';
 import Room from '../models/Room.model.js';
-import { sendBookingConfirmation } from '../utils/email.js';
+import { sendBookingRequestToCustomer, sendNewBookingRequestToAdmin, sendBookingConfirmedToCustomer } from '../utils/email.js';
 
 // Helper: Check overlapping bookings
 const hasConflict = async (roomId, checkIn, checkOut, excludeBookingId = null) => {
@@ -28,7 +28,6 @@ export const createBooking = async (req, res) => {
     const start = new Date(checkIn);
     const end = new Date(checkOut);
 
-    // Joi already validated → only business logic remains
     const roomDoc = await Room.findById(room);
     if (!roomDoc || !roomDoc.isActive) {
       return res.status(404).json({
@@ -50,34 +49,39 @@ export const createBooking = async (req, res) => {
       checkIn: start,
       checkOut: end,
       customer,
-      status: 'confirmed',
+      status: 'pending', // ← Changed to pending
     });
 
     await booking.populate('room', 'name');
 
-    // Non-blocking email
-    sendBookingConfirmation(booking).catch(err => console.error('Email failed:', err));
+    // Send TWO emails (non-blocking)
+    sendBookingRequestToCustomer(booking).catch(err => 
+      console.error('Customer request email failed:', err)
+    );
 
-    // Real-time emit
+    sendNewBookingRequestToAdmin(booking).catch(err => 
+      console.error('Admin notification email failed:', err)
+    );
+
+    // Real-time notify admin dashboard
     const io = req.app.get('io');
     if (io) {
-      io.to(`room-${room}`).emit('availabilityUpdate', {
-        roomId: room,
-        dates: { checkIn: start, checkOut: end },
-        available: false,
+      io.emit('newBookingRequest', { // broadcast to all admins
+        bookingId: booking._id,
+        message: 'New booking request pending approval',
       });
     }
 
     res.status(201).json({
       success: true,
-      message: 'Booking confirmed',
+      message: 'Booking request submitted successfully. Awaiting admin confirmation.',
       data: booking,
     });
   } catch (error) {
     console.error('Create booking error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error creating booking',
+      message: 'Server error creating booking request',
     });
   }
 };
@@ -152,28 +156,43 @@ export const updateBookingStatus = async (req, res) => {
   try {
     const { status } = req.body;
 
-    const booking = await Booking.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true, runValidators: true }
-    );
+    if (!['confirmed', 'cancelled'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid status' });
+    }
+
+    const booking = await Booking.findById(req.params.id).populate('room', 'name');
 
     if (!booking) {
       return res.status(404).json({ success: false, message: 'Booking not found' });
     }
 
-    if (status === 'cancelled') {
-      const io = req.app.get('io');
-      if (io) {
-        io.to(`room-${booking.room}`).emit('availabilityUpdate', {
-          roomId: booking.room.toString(),
-          available: true,
-        });
-      }
+    if (booking.status !== 'pending') {
+      return res.status(400).json({ success: false, message: 'Booking is not pending' });
     }
 
-    res.status(200).json({ success: true, data: booking });
+    booking.status = status;
+    await booking.save();
+
+    // Send final email to customer
+    if (status === 'confirmed') {
+      await sendBookingConfirmedToCustomer(booking);
+    } else if (status === 'cancelled') {
+      await sendBookingRejectedToCustomer(booking);
+    }
+
+    // Real-time notify (optional)
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('bookingStatusUpdated', { bookingId: booking._id, status });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Booking ${status}`,
+      data: booking,
+    });
   } catch (error) {
+    console.error('Update booking status error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
-};
+};;
