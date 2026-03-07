@@ -1,10 +1,12 @@
-import Room from '../models/Room.model.js';
+import Room from "../models/Room.model.js";
 
 /* ---------------- GET ALL ROOMS (public) ---------------- */
 export const getAllRooms = async (req, res) => {
   try {
     const rooms = await Room.find()
-      .select('name description images capacity pricePerNight amenities isActive')
+      .select(
+        "name description images capacity pricePerNight amenities isActive",
+      )
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -13,11 +15,11 @@ export const getAllRooms = async (req, res) => {
       data: rooms,
     });
   } catch (error) {
-    console.error('getAllRooms error:', error);
+    console.error("getAllRooms error:", error);
     res.status(500).json({
       success: false,
-      message: 'Server error while fetching rooms',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      message: "Server error while fetching rooms",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
@@ -25,20 +27,21 @@ export const getAllRooms = async (req, res) => {
 /* ---------------- GET SINGLE ROOM (public) ---------------- */
 export const getRoomById = async (req, res) => {
   try {
-    const room = await Room.findById(req.params.id)
-      .select('name description images capacity pricePerNight amenities isActive');
+    const room = await Room.findById(req.params.id).select(
+      "name description images capacity pricePerNight amenities isActive",
+    );
 
     if (!room) {
       return res.status(404).json({
         success: false,
-        message: 'Room not found',
+        message: "Room not found",
       });
     }
 
     if (!room.isActive) {
       return res.status(403).json({
         success: false,
-        message: 'This room is currently not available',
+        message: "This room is currently not available",
       });
     }
 
@@ -47,11 +50,11 @@ export const getRoomById = async (req, res) => {
       data: room,
     });
   } catch (error) {
-    console.error('getRoomById error:', error);
+    console.error("getRoomById error:", error);
     res.status(500).json({
       success: false,
-      message: 'Server error while fetching room',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      message: "Server error while fetching room",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
@@ -59,14 +62,40 @@ export const getRoomById = async (req, res) => {
 /* ---------------- CREATE ROOM (admin) ---------------- */
 export const createRoom = async (req, res) => {
   try {
-    const imagePaths = req.files?.length > 0
-      ? req.files.map(file => `/uploads/rooms/images/${file.filename}`)
-      : [];
+    if (req.files) {
+      // show each file object for debugging
+      const list = Array.isArray(req.files)
+        ? req.files
+        : Object.values(req.files).flat();
+      list.forEach((f, i) =>
+        console.log(`file[${i}] keys:`, Object.keys(f), f),
+      );
+    }
 
+    if (req.body && !req.files) {
+      console.warn("createRoom: no files object on request");
+      if (req.is("multipart/form-data")) {
+        return res.status(400).json({
+          success: false,
+          message: "Multipart form detected but no files were attached",
+        });
+      }
+    }
+
+    // choose whichever URL property exists
+    const imageUrls = req.files
+      ? (Array.isArray(req.files)
+          ? req.files
+          : Object.values(req.files).flat()
+        ).map((f) => f.path || f.secure_url || f.url || f.location || "")
+      : [];
+    if (imageUrls.some((u) => !u)) {
+      console.warn("Some uploaded room files mapped to empty URL", imageUrls);
+    }
     // Joi already validated body → safe to use directly
     const roomData = {
       ...req.body,
-      images: imagePaths,
+      images: imageUrls,
       pricePerNight: Number(req.body.pricePerNight),
       capacity: Number(req.body.capacity),
       // amenities might come as string from form-data → parse if needed
@@ -75,7 +104,7 @@ export const createRoom = async (req, res) => {
         : req.body.amenities
           ? JSON.parse(req.body.amenities)
           : [],
-      isActive: req.body.isActive !== 'false', // form-data sends strings
+      isActive: req.body.isActive !== "false", // form-data sends strings
     };
 
     const room = await Room.create(roomData);
@@ -85,10 +114,10 @@ export const createRoom = async (req, res) => {
       data: room,
     });
   } catch (error) {
-    console.error('createRoom error:', error);
-    res.status(error.name === 'ValidationError' ? 400 : 500).json({
+    console.error("createRoom error:", error);
+    res.status(error.name === "ValidationError" ? 400 : 500).json({
       success: false,
-      message: error.message || 'Failed to create room',
+      message: error.message || "Failed to create room",
     });
   }
 };
@@ -96,49 +125,72 @@ export const createRoom = async (req, res) => {
 /* ---------------- UPDATE ROOM (admin) ---------------- */
 export const updateRoom = async (req, res) => {
   try {
+    if (req.files) {
+      const list = Array.isArray(req.files)
+        ? req.files
+        : Object.values(req.files).flat();
+      list.forEach((f, i) =>
+        console.log(`file[${i}] keys:`, Object.keys(f), f),
+      );
+    }
+    if (req.body && !req.files) {
+      console.warn("updateRoom: no files object on request");
+      if (req.is("multipart/form-data")) {
+        return res.status(400).json({
+          success: false,
+          message: "Multipart form detected but no files were attached",
+        });
+      }
+    }
     const updateData = { ...req.body };
 
     // Convert numbers
-    if (updateData.pricePerNight) updateData.pricePerNight = Number(updateData.pricePerNight);
+    if (updateData.pricePerNight)
+      updateData.pricePerNight = Number(updateData.pricePerNight);
     if (updateData.capacity) updateData.capacity = Number(updateData.capacity);
 
     // Parse amenities if sent as JSON string (from frontend)
-    if (updateData.amenities && typeof updateData.amenities === 'string') {
+    if (updateData.amenities && typeof updateData.amenities === "string") {
       try {
         updateData.amenities = JSON.parse(updateData.amenities);
       } catch {
         // fallback: if not valid JSON, treat as comma string
         updateData.amenities = updateData.amenities
-          .split(',')
-          .map(a => a.trim())
+          .split(",")
+          .map((a) => a.trim())
           .filter(Boolean);
       }
     }
 
     // Handle isActive toggle (from checkbox)
     if (updateData.isActive !== undefined) {
-      updateData.isActive = updateData.isActive === 'true' || updateData.isActive === true;
+      updateData.isActive =
+        updateData.isActive === "true" || updateData.isActive === true;
     }
 
     // Handle new images (replace existing)
     if (req.files?.length > 0) {
-      updateData.images = req.files.map(file => `/uploads/rooms/images/${file.filename}`);
+      updateData.images = req.files.map(
+        (f) => f.path || f.secure_url || f.url || f.location || "",
+      );
     }
 
     // Clean undefined fields
     Object.keys(updateData).forEach(
-      key => updateData[key] === undefined && delete updateData[key]
+      (key) => updateData[key] === undefined && delete updateData[key],
     );
 
     const room = await Room.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
       runValidators: true,
-    }).select('name description images capacity pricePerNight amenities isActive');
+    }).select(
+      "name description images capacity pricePerNight amenities isActive",
+    );
 
     if (!room) {
       return res.status(404).json({
         success: false,
-        message: 'Room not found',
+        message: "Room not found",
       });
     }
 
@@ -147,10 +199,10 @@ export const updateRoom = async (req, res) => {
       data: room,
     });
   } catch (error) {
-    console.error('updateRoom error:', error);
-    res.status(error.name === 'ValidationError' ? 400 : 500).json({
+    console.error("updateRoom error:", error);
+    res.status(error.name === "ValidationError" ? 400 : 500).json({
       success: false,
-      message: error.message || 'Failed to update room',
+      message: error.message || "Failed to update room",
     });
   }
 };
@@ -161,20 +213,23 @@ export const deleteRoom = async (req, res) => {
     const room = await Room.findById(req.params.id);
 
     if (!room) {
-      return res.status(404).json({ success: false, message: 'Room not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Room not found" });
     }
 
     // Check if room has active/future bookings
     const activeBookings = await Booking.countDocuments({
       room: req.params.id,
       checkOut: { $gte: new Date() }, // future or ongoing bookings
-      status: { $in: ['pending', 'confirmed'] }
+      status: { $in: ["pending", "confirmed"] },
     });
 
     if (activeBookings > 0) {
       return res.status(400).json({
         success: false,
-        message: 'Cannot delete room with active or future bookings. Deactivate instead.',
+        message:
+          "Cannot delete room with active or future bookings. Deactivate instead.",
       });
     }
 
@@ -184,10 +239,10 @@ export const deleteRoom = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Room deactivated successfully (no active bookings found)',
+      message: "Room deactivated successfully (no active bookings found)",
     });
   } catch (error) {
-    console.error('deleteRoom error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error("deleteRoom error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };

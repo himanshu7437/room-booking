@@ -2,13 +2,13 @@ import mongoose from "mongoose";
 
 const bookingSchema = new mongoose.Schema(
   {
-    room: {                           // ← renamed from roomId → conventional mongoose ref name
+    room: {                           
       type: mongoose.Schema.Types.ObjectId,
       ref: "Room",
       required: true,
-      index: true,                    // ← speeds up availability queries
+      index: true,                    
     },
-    customer: {                       // ← group fields under customer object (cleaner)
+    customer: {                       
       name: {
         type: String,
         required: true,
@@ -25,16 +25,16 @@ const bookingSchema = new mongoose.Schema(
         required: true,
         trim: true,
       },
-      guests: {                       // ← added (client said "Number of Guests")
+      guests: {                       
         type: Number,
         required: true,
         min: 1,
       },
     },
-    checkIn: {                        // ← renamed checkInDate → checkIn (shorter, standard)
+    checkIn: {                        
       type: Date,
       required: true,
-      index: true,                    // ← very important for range queries
+      index: true,                    
     },
     checkOut: {
       type: Date,
@@ -46,7 +46,7 @@ const bookingSchema = new mongoose.Schema(
       enum: ["pending", "confirmed", "cancelled"],
       default: "pending",
     },
-    notes: {                          // ← optional field — useful for special requests
+    notes: {                          
       type: String,
       trim: true,
     },

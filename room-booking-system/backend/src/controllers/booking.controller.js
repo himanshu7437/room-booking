@@ -1,6 +1,6 @@
 import Booking from '../models/Booking.model.js';
 import Room from '../models/Room.model.js';
-import { sendBookingRequestToCustomer, sendNewBookingRequestToAdmin, sendBookingConfirmedToCustomer } from '../utils/email.js';
+import { sendBookingRequestToCustomer, sendNewBookingRequestToAdmin, sendBookingConfirmedToCustomer, sendBookingRejectedToCustomer } from '../utils/email.js';
 
 // Helper: Check overlapping bookings
 const hasConflict = async (roomId, checkIn, checkOut, excludeBookingId = null) => {
@@ -49,7 +49,7 @@ export const createBooking = async (req, res) => {
       checkIn: start,
       checkOut: end,
       customer,
-      status: 'pending', // ← Changed to pending
+      status: 'pending',
     });
 
     await booking.populate('room', 'name');

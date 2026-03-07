@@ -15,13 +15,13 @@ const router = express.Router();
 
 // Public routes
 router.post('/', validate(createBookingSchema), createBooking);
-router.get('/:id/availability', checkRoomAvailability);  // /api/bookings/:roomId/availability?checkIn=...&checkOut=...
+router.get('/:id/availability', checkRoomAvailability);  
 
 // Admin protected routes
 router.use(protectAdmin);
 
 router.get('/', getAllBookings);
 router.get('/:id', getBookingById);
-router.put('/:id', updateBookingStatus);  // body: { "status": "cancelled" }
+router.put('/:id', updateBookingStatus);  
 
 export default router;

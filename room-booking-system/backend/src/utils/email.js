@@ -50,7 +50,7 @@ export const sendNewBookingRequestToAdmin = async (booking) => {
 
   const mailOptions = {
     from: process.env.EMAIL_FROM,
-    to: process.env.ADMIN_EMAIL || 'min@luxadstay.com', // set in .env
+    to: process.env.ADMIN_EMAIL || 'min@luxadstay.com',
     subject: 'New Booking Request – Action Required',
     text: `
 New booking request received!

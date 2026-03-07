@@ -1,5 +1,3 @@
-import Joi from 'joi';
-
 export const validate = (schema) => (req, res, next) => {
   // For multipart/form-data (uploads), Joi validates the body fields
   // Files are in req.files – we don't validate files here (multer already filters)

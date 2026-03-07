@@ -66,7 +66,7 @@ export default function BookingPage() {
       newValue = Math.max(1, Math.min(room?.capacity || 10, Number(value)));
     }
 
-    setFormData(prev => ({ ...prev, [name]: newValue }));
+    setFormData((prev) => ({ ...prev, [name]: newValue }));
   };
 
   const handleDateSubmit = (e) => {
@@ -113,10 +113,13 @@ export default function BookingPage() {
 
       const res = await api.post("/bookings", payload);
 
-      toast.success(res.data.message || "Booking request sent! Awaiting confirmation.");
+      toast.success(
+        res.data.message || "Booking request sent! Awaiting confirmation.",
+      );
       setTimeout(() => navigate("/"), 2500);
     } catch (error) {
-      const msg = error.response?.data?.message || "Failed to submit booking request";
+      const msg =
+        error.response?.data?.message || "Failed to submit booking request";
       toast.error(msg);
       console.error("Booking error:", error.response?.data);
     } finally {
@@ -127,7 +130,9 @@ export default function BookingPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="text-white text-xl animate-pulse">Loading room details...</div>
+        <div className="text-white text-xl animate-pulse">
+          Loading room details...
+        </div>
       </div>
     );
   }
@@ -143,7 +148,6 @@ export default function BookingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-950 to-black text-white">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-
         {/* Header */}
         <div className="mb-10">
           <button
@@ -157,21 +161,26 @@ export default function BookingPage() {
             Book: {room.name}
           </h1>
           <p className="text-gray-400 text-lg">
-            {room.pricePerNight.toLocaleString("en-US", { style: "currency", currency: "USD" })} / night
+            {room.pricePerNight.toLocaleString("en-US", {
+              style: "currency",
+              currency: "USD",
+            })}{" "}
+            / night
             {" • "} Up to {room.capacity} guests
           </p>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-16">
-
           {/* Left: Room Summary */}
           <div className="space-y-10">
             {/* Main Image */}
             <div className="rounded-2xl overflow-hidden shadow-2xl border border-gray-800">
               <img
-                src={room.images?.[0] 
-                  ? `http://localhost:5000${room.images[0]}`
-                  : "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200"}
+                src={
+                  room.images?.[0]
+                    ? room.images[0]
+                    : "https://i.sstatic.net/y9DpT.jpg"
+                }
                 alt={room.name}
                 className="w-full h-80 md:h-96 object-cover"
               />
@@ -181,7 +190,9 @@ export default function BookingPage() {
             {room.description && (
               <div>
                 <h2 className="text-2xl font-semibold mb-4">About This Room</h2>
-                <p className="text-gray-300 leading-relaxed">{room.description}</p>
+                <p className="text-gray-300 leading-relaxed">
+                  {room.description}
+                </p>
               </div>
             )}
 
@@ -206,31 +217,47 @@ export default function BookingPage() {
           {/* Right: Booking Form */}
           <div className="lg:sticky lg:top-10 h-fit">
             <div className="bg-gray-900/80 border border-gray-800 rounded-2xl p-6 md:p-8 shadow-2xl backdrop-blur-sm">
-
               {/* Step 1: Dates */}
               {step === 1 && (
                 <div className="space-y-6">
-                  <h2 className="text-2xl font-bold text-center mb-2">Select Your Dates</h2>
+                  <h2 className="text-2xl font-bold text-center mb-2">
+                    Select Your Dates
+                  </h2>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm text-gray-400 mb-2">Check-in</label>
+                      <label className="block text-sm text-gray-400 mb-2">
+                        Check-in
+                      </label>
                       <input
                         type="date"
                         value={formData.checkIn}
                         min={new Date().toISOString().split("T")[0]}
-                        onChange={(e) => handleChange({ target: { name: "checkIn", value: e.target.value } })}
+                        onChange={(e) =>
+                          handleChange({
+                            target: { name: "checkIn", value: e.target.value },
+                          })
+                        }
                         className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm text-gray-400 mb-2">Check-out</label>
+                      <label className="block text-sm text-gray-400 mb-2">
+                        Check-out
+                      </label>
                       <input
                         type="date"
                         value={formData.checkOut}
-                        min={formData.checkIn || new Date().toISOString().split("T")[0]}
-                        onChange={(e) => handleChange({ target: { name: "checkOut", value: e.target.value } })}
+                        min={
+                          formData.checkIn ||
+                          new Date().toISOString().split("T")[0]
+                        }
+                        onChange={(e) =>
+                          handleChange({
+                            target: { name: "checkOut", value: e.target.value },
+                          })
+                        }
                         className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none"
                       />
                     </div>
@@ -248,11 +275,15 @@ export default function BookingPage() {
               {/* Step 2: Customer Details */}
               {step === 2 && (
                 <div className="space-y-6">
-                  <h2 className="text-2xl font-bold text-center mb-2">Your Details</h2>
+                  <h2 className="text-2xl font-bold text-center mb-2">
+                    Your Details
+                  </h2>
 
                   <div className="space-y-5">
                     <div>
-                      <label className="block text-sm text-gray-400 mb-2">Full Name</label>
+                      <label className="block text-sm text-gray-400 mb-2">
+                        Full Name
+                      </label>
                       <input
                         type="text"
                         name="name"
@@ -264,7 +295,9 @@ export default function BookingPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm text-gray-400 mb-2">Email</label>
+                      <label className="block text-sm text-gray-400 mb-2">
+                        Email
+                      </label>
                       <input
                         type="email"
                         name="email"
@@ -276,7 +309,9 @@ export default function BookingPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm text-gray-400 mb-2">Phone Number</label>
+                      <label className="block text-sm text-gray-400 mb-2">
+                        Phone Number
+                      </label>
                       <input
                         type="tel"
                         name="phone"
@@ -288,7 +323,9 @@ export default function BookingPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm text-gray-400 mb-2">Number of Guests</label>
+                      <label className="block text-sm text-gray-400 mb-2">
+                        Number of Guests
+                      </label>
                       <select
                         name="guests"
                         value={formData.guests}
@@ -306,7 +343,9 @@ export default function BookingPage() {
 
                   {/* Summary */}
                   <div className="pt-4 border-t border-gray-800">
-                    <h3 className="text-lg font-semibold mb-3">Booking Summary</h3>
+                    <h3 className="text-lg font-semibold mb-3">
+                      Booking Summary
+                    </h3>
                     <div className="space-y-2 text-gray-300">
                       <div className="flex justify-between">
                         <span>Room</span>
@@ -315,7 +354,8 @@ export default function BookingPage() {
                       <div className="flex justify-between">
                         <span>Dates</span>
                         <span className="font-medium">
-                          {new Date(formData.checkIn).toLocaleDateString()} → {new Date(formData.checkOut).toLocaleDateString()}
+                          {new Date(formData.checkIn).toLocaleDateString()} →{" "}
+                          {new Date(formData.checkOut).toLocaleDateString()}
                         </span>
                       </div>
                       <div className="flex justify-between">
@@ -324,7 +364,9 @@ export default function BookingPage() {
                       </div>
                       <div className="flex justify-between">
                         <span>Price per night</span>
-                        <span className="font-medium">{formatPrice(room.pricePerNight)}</span>
+                        <span className="font-medium">
+                          {formatPrice(room.pricePerNight)}
+                        </span>
                       </div>
                       <div className="flex justify-between pt-2 border-t border-gray-700 text-lg font-bold text-amber-400">
                         <span>Total</span>
@@ -349,9 +391,23 @@ export default function BookingPage() {
                     >
                       {submitting ? (
                         <>
-                          <svg className="animate-spin h-5 w-5 text-black" viewBox="0 0 24 24">
-                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" fill="none" />
-                            <path fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z" />
+                          <svg
+                            className="animate-spin h-5 w-5 text-black"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                              className="opacity-25"
+                              fill="none"
+                            />
+                            <path
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z"
+                            />
                           </svg>
                           Processing...
                         </>
@@ -362,7 +418,7 @@ export default function BookingPage() {
                   </div>
 
                   <p className="text-center text-sm text-gray-500 mt-4">
-                    Confirmation email will be sent after admin approval
+                    Confirmation email will be sent shortly
                   </p>
                 </div>
               )}

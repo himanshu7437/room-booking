@@ -1,8 +1,7 @@
 import jwt from "jsonwebtoken";
 import Admin from "../models/Admin.model.js";
 
-// Optional: simple register (useful for first admin setup)
-// In production → remove or restrict this endpoint after first use
+
 export const registerAdmin = async (req, res) => {
   try {
     const { email, password } = req.body;

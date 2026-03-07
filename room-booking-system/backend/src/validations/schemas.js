@@ -54,7 +54,7 @@ export const updateRoomSchema = Joi.object({
   capacity: Joi.number().integer().min(1).max(20).optional(),
   amenities: Joi.array().items(Joi.string().trim().min(1)).optional(),
   isActive: Joi.boolean().optional(),
-}).min(1); // at least one field must be provided for update
+}).min(1);
 
 // --------------------- Event Schemas ---------------------
 export const createEventSchema = Joi.object({
@@ -71,7 +71,7 @@ export const createEventSchema = Joi.object({
     .required(),
 
   eventDate: Joi.date()
-    .greater('now')           // future events only (you can remove if past events allowed)
+    .greater('now')           
     .required()
     .messages({
       'date.greater': 'Event date must be in the future',

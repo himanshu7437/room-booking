@@ -49,7 +49,7 @@ export default function EventDetail() {
     );
   }
 
-  const images = event.images?.map((img) => `http://localhost:5000${img}`) || [];
+  const images = event.images?.map((img) => img) || [];
 
   return (
     <div className="bg-[#0c0c0c] text-white min-h-screen">
@@ -57,7 +57,7 @@ export default function EventDetail() {
       {/* HERO */}
       <section className="relative h-[60vh] flex items-end">
         <img
-          src={images[0] || "https://images.unsplash.com/photo-1519167758481-83f550bb49b3"}
+          src={images[0] || "https://i.sstatic.net/y9DpT.jpg"}
           alt={event.title}
           className="absolute inset-0 w-full h-full object-cover"
         />

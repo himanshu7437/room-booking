@@ -1,51 +1,66 @@
 import { Component } from "react";
-import { AlertCircle } from "lucide-react";
+import { AlertTriangle, RefreshCw } from "lucide-react";
 import Button from "./ui/Button";
 
 class ErrorBoundary extends Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null, errorInfo: null };
+    this.state = { hasError: false, error: null };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError() {
     return { hasError: true };
   }
 
   componentDidCatch(error, errorInfo) {
     console.error("Error caught by boundary:", error, errorInfo);
+
     this.setState({
       error,
-      errorInfo,
     });
   }
 
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
-            <div className="flex items-center gap-3 mb-4">
-              <AlertCircle className="w-6 h-6 text-red-600" />
-              <h1 className="text-2xl font-bold text-gray-900">Oops!</h1>
+        <div className="min-h-screen flex items-center justify-center bg-zinc-950 px-6">
+          <div className="w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl p-8 text-center">
+
+            {/* Icon */}
+            <div className="flex justify-center mb-5">
+              <div className="bg-red-500/10 p-4 rounded-full">
+                <AlertTriangle className="w-7 h-7 text-red-500" />
+              </div>
             </div>
-            <p className="text-gray-600 mb-4">
-              Something went wrong. Please try refreshing the page.
+
+            {/* Title */}
+            <h1 className="text-2xl font-semibold text-white mb-2">
+              Something went wrong
+            </h1>
+
+            {/* Message */}
+            <p className="text-zinc-400 mb-6">
+              An unexpected error occurred. Try refreshing the page.
             </p>
+
+            {/* Dev Error (development only) */}
             {process.env.NODE_ENV === "development" && this.state.error && (
-              <div className="bg-red-50 border border-red-200 rounded p-3 mb-4">
-                <p className="text-xs text-red-800 font-mono overflow-auto">
+              <div className="bg-red-500/10 border border-red-500/20 rounded-md p-3 mb-6 text-left">
+                <p className="text-xs text-red-400 font-mono break-words">
                   {this.state.error.toString()}
                 </p>
               </div>
             )}
+
+            {/* Refresh Button */}
             <Button
               onClick={() => window.location.reload()}
-              variant="primary"
-              className="w-full"
+              className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white"
             >
+              <RefreshCw size={16} />
               Refresh Page
             </Button>
+
           </div>
         </div>
       );

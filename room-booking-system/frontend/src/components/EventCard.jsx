@@ -5,8 +5,8 @@ import { formatDate } from "../utils/helpers";
 const EventCard = ({ event, onView }) => {
 
   const mainImage = event.images?.[0]
-    ? `http://localhost:5000${event.images[0]}`
-    : "/placeholder-room.jpg";
+    ? event.images[0]
+    : "https://i.sstatic.net/y9DpT.jpg";
 
   return (
     <div className="group bg-[#151515] border border-white/10 rounded-xl overflow-hidden hover:border-yellow-500 transition duration-500">

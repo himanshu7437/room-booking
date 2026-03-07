@@ -1,7 +1,7 @@
 import { Hotel, Users, Star, Globe } from "lucide-react";
 
 export default function About() {
-
+  
   return (
 
     <div className="bg-[#0f0f0f] text-white min-h-screen">

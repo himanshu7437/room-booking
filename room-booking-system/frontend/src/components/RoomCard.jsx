@@ -4,8 +4,8 @@ import { formatPrice } from "../utils/helpers";
 const RoomCard = ({ room, onViewDetails, onBook }) => {
 
   const mainImage = room.images?.[0]
-    ? `http://localhost:5000${room.images[0]}`
-    : "/placeholder-room.jpg";
+    ? room.images?.[0]
+    : "https://i.sstatic.net/y9DpT.jpg";
 
   const rating = room.rating || 4.6;
 

@@ -1,74 +1,108 @@
-import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
+import multer from "multer";
+import { CloudinaryStorage } from "multer-storage-cloudinary";
+import cloudinary from "../config/cloudinary.js";
 
-// Helper to ensure directory exists
-const ensureDir = (dirPath) => {
-  if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath, { recursive: true });
-  }
-};
+// --- constants -----------------------------------------------------------
+const IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+const VIDEO_TYPES = ["video/mp4", "video/quicktime", "video/avi", "video/webm"];
 
-// Custom storage engine (dynamic destination based on fieldname)
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    let destPath;
+const MAX_IMAGE_SIZE = 50 * 1024 * 1024; // 50MB
+const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
+const GLOBAL_MAX_SIZE = MAX_VIDEO_SIZE; // multer limit per file
 
-    if (file.fieldname === 'roomImages') {
-      destPath = path.join(process.cwd(), 'src/uploads/rooms/images');
-    } else if (file.fieldname === 'eventImages') {
-      destPath = path.join(process.cwd(), 'src/uploads/events/images');
-    } else if (file.fieldname === 'eventVideo') {
-      destPath = path.join(process.cwd(), 'src/uploads/events/videos');
-    } else {
-      return cb(new Error('Invalid upload field'), null);
+// dynamic CloudinaryStorage params depending on fieldname
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: (req, file) => {
+
+    let folder = "luxstay/others";
+    let resource_type = "auto";
+    let allowed_formats = [];
+
+    switch (file.fieldname) {
+      case "roomImages":
+        folder = "luxstay/rooms";
+        resource_type = "image";
+        allowed_formats = ["jpg", "jpeg", "png", "webp"];
+        break;
+      case "eventImages":
+        folder = "luxstay/events/images";
+        resource_type = "image";
+        allowed_formats = ["jpg", "jpeg", "png", "webp"];
+        break;
+      case "eventVideo":
+        folder = "luxstay/events/videos";
+        resource_type = "video";
+        allowed_formats = ["mp4", "mov", "avi", "webm"];
+        break;
+      default:
+        throw new Error("Invalid upload field");
     }
 
-    ensureDir(destPath);
-    cb(null, destPath);
-  },
-
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname).toLowerCase();
-    const filename = `${file.fieldname}-${uniqueSuffix}${ext}`;
-    cb(null, filename);
+    return { folder, resource_type, allowed_formats };
   },
 });
 
-// File filter: allow only images & videos
+// file filter enforces mime‑type and logs
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = [
-    'image/jpeg', 'image/jpg', 'image/png', 'image/webp',     // images
-    'video/mp4', 'video/mpeg', 'video/quicktime', 'video/webm' // videos
-  ];
-
-  if (allowedTypes.includes(file.mimetype)) {
+  if (
+    IMAGE_TYPES.includes(file.mimetype) ||
+    VIDEO_TYPES.includes(file.mimetype)
+  ) {
     cb(null, true);
   } else {
-    cb(new Error('Only images (jpg, png, webp) and videos (mp4, etc.) allowed'), false);
+    cb(
+      new multer.MulterError(
+        "LIMIT_UNEXPECTED_FILE",
+        "Only images (jpg/jpeg/png/webp) or videos (mp4/mov/avi/webm) are allowed",
+      ),
+    );
   }
 };
 
-// Global multer instance with limits
+// size limits enforcement after upload (because images & videos differ)
+export const enforceSizeLimits = (req, res, next) => {
+  const files = [];
+  if (req.files) {
+    if (Array.isArray(req.files)) files.push(...req.files);
+    else Object.values(req.files).forEach((arr) => files.push(...arr));
+  }
+
+  for (const f of files) {
+    if (IMAGE_TYPES.includes(f.mimetype) && f.size > MAX_IMAGE_SIZE) {
+      return res.status(400).json({
+        success: false,
+        message: `Image "${f.originalname}" exceeds 50 MB limit`,
+      });
+    }
+    if (VIDEO_TYPES.includes(f.mimetype) && f.size > MAX_VIDEO_SIZE) {
+      return res.status(400).json({
+        success: false,
+        message: `Video "${f.originalname}" exceeds 100 MB limit`,
+      });
+    }
+  }
+  next();
+};
+
 const upload = multer({
   storage,
   fileFilter,
-  limits: {
-    fileSize: 50 * 1024 * 1024,       // 50MB per file (adjust as needed)
-    files: 10,                        // max 10 files per request
-  },
+  limits: { fileSize: GLOBAL_MAX_SIZE, files: 20 },
 });
 
-// Specific upload handlers for different use cases
+// export middleware arrays so routes stay the same
+export const uploadRoomImages = [
+  upload.array("roomImages", 8),
+  enforceSizeLimits,
+];
 
-// For rooms: multiple images only
-export const uploadRoomImages = upload.array('roomImages', 8);  // max 8 photos per room
-
-// For events: multiple images + optional single video
-export const uploadEventMedia = upload.fields([
-  { name: 'eventImages', maxCount: 10 },     // multiple photos
-  { name: 'eventVideo', maxCount: 1 },       // one video
-]);
+export const uploadEventMedia = [
+  upload.fields([
+    { name: "eventImages", maxCount: 10 },
+    { name: "eventVideo", maxCount: 1 },
+  ]),
+  enforceSizeLimits,
+];
 
 export default upload;

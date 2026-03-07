@@ -1,75 +1,89 @@
 import { z } from "zod";
 
-// Auth schemas
-export const loginSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-});
+/* ---------------- Booking Search ---------------- */
 
-// Booking schemas
-export const bookingSearchSchema = z.object({
-  checkIn: z.string().min(1, "Check-in date is required"),
-  checkOut: z.string().min(1, "Check-out date is required"),
-  guests: z.coerce
-    .number()
-    .min(1, "At least 1 guest required")
-    .max(10, "Maximum 10 guests"),
-});
+export const bookingSearchSchema = z
+  .object({
+    checkIn: z.string().min(1, "Check-in date is required"),
+    checkOut: z.string().min(1, "Check-out date is required"),
 
-export const bookingFormSchema = z.object({
-  checkIn: z.string().min(1, "Check-in date is required"),
-  checkOut: z.string().min(1, "Check-out date is required"),
-  roomId: z.string().min(1, "Room is required"),
-  customer: z.object({
-    name: z.string().min(2, "Name must be at least 2 characters"),
-    email: z.string().email("Invalid email address"),
-    phone: z
-      .string()
-      .regex(
-        /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/,
-        "Invalid phone number",
-      ),
     guests: z.coerce
       .number()
-      .min(1, "At least 1 guest")
-      .max(10, "Maximum 10 guests"),
-  }),
-});
-
-// Room schemas
-export const roomFormSchema = z.object({
-  name: z.string().min(2, "Room name must be at least 2 characters").max(100),
-  description: z
-    .string()
-    .min(10, "Description must be at least 10 characters")
-    .max(1000),
-  price: z.coerce.number().min(0, "Price must be positive"),
-  capacity: z.coerce.number().min(1, "Capacity must be at least 1").max(10),
-  amenities: z.string().min(1, "Add at least one amenity"),
-  roomImages: z.instanceof(FileList).optional(),
-});
-
-// Event schemas
-export const eventFormSchema = z
-  .object({
-    title: z.string().min(2, "Title must be at least 2 characters").max(100),
-    description: z
-      .string()
-      .min(10, "Description must be at least 10 characters")
-      .max(1000),
-    eventDate: z.string().min(1, "Event date is required"),
-    vlogType: z.enum(["youtube", "upload"], {
-      errorMap: () => ({ message: "Select YouTube URL or Upload video" }),
-    }),
-    vlogUrl: z.string().optional(),
-    eventImages: z.instanceof(FileList).optional(),
-    eventVideo: z.instanceof(FileList).optional(),
+      .min(1, "At least 1 guest required")
+      .max(20, "Maximum 20 guests"),
   })
-  .refine(
-    (data) => {
-      if (data.vlogType === "youtube") return !!data.vlogUrl;
-      if (data.vlogType === "upload") return data.eventVideo?.length > 0;
-      return true;
-    },
-    { message: "Video source is required", path: ["vlogUrl"] },
-  );
+  .refine((data) => {
+    const checkIn = new Date(data.checkIn);
+    const checkOut = new Date(data.checkOut);
+    return checkOut > checkIn;
+  }, {
+    message: "Check-out must be after check-in",
+    path: ["checkOut"],
+  });
+
+/* ---------------- Booking Form ---------------- */
+
+export const bookingFormSchema = z
+  .object({
+    checkIn: z
+      .string()
+      .min(1, "Check-in date is required")
+      .refine((date) => !isNaN(new Date(date).getTime()), {
+        message: "Invalid check-in date",
+      }),
+
+    checkOut: z
+      .string()
+      .min(1, "Check-out date is required")
+      .refine((date) => !isNaN(new Date(date).getTime()), {
+        message: "Invalid check-out date",
+      }),
+
+    // must match backend field name
+    room: z
+      .string()
+      .regex(/^[0-9a-fA-F]{24}$/, "Invalid room ID format"),
+
+    customer: z.object({
+      name: z
+        .string()
+        .min(2, "Name must be at least 2 characters")
+        .max(100),
+
+      email: z
+        .string()
+        .email("Invalid email address"),
+
+      phone: z
+        .string()
+        .regex(
+          /^[0-9+\-\s()]{8,20}$/,
+          "Invalid phone number format"
+        ),
+
+      guests: z.coerce
+        .number()
+        .min(1, "At least 1 guest required")
+        .max(20, "Maximum 20 guests"),
+    }),
+  })
+
+  /* check-in must be future date */
+  .refine((data) => {
+    const now = new Date();
+    const checkIn = new Date(data.checkIn);
+    return checkIn > now;
+  }, {
+    message: "Check-in must be in the future",
+    path: ["checkIn"],
+  })
+
+  /* check-out must be after check-in */
+  .refine((data) => {
+    const checkIn = new Date(data.checkIn);
+    const checkOut = new Date(data.checkOut);
+    return checkOut > checkIn;
+  }, {
+    message: "Check-out must be after check-in",
+    path: ["checkOut"],
+  });

@@ -1,4 +1,3 @@
-// src/models/Admin.model.js
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
@@ -15,7 +14,7 @@ const adminSchema = new mongoose.Schema(
       type: String,
       required: true,
       minlength: 8,
-      select: false, // don't return password in queries by default
+      select: false, 
     },
     role: {
       type: String,

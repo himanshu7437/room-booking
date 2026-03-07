@@ -10,8 +10,6 @@ import Card, {CardBody } from "../components/ui/Card";
 import { formatPrice } from "../utils/helpers";
 import { showErrorToast } from "../utils/toast";
 
-const BASE_URL = "http://localhost:5000";
-
 export default function RoomDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -29,7 +27,7 @@ export default function RoomDetail() {
       const res = await roomsApi.getById(id);
       const data = res.data.room || res.data;
       setRoom(data.data);
-    } catch (error) {
+    } catch (err) {
       showErrorToast("Failed to load room");
     } finally {
       setLoading(false);
@@ -79,8 +77,8 @@ export default function RoomDetail() {
 
   const images =
     room.images?.length > 0
-      ? room.images.map((img) => `${BASE_URL}${img}`)
-      : ["https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=1200"];
+      ? room.images.map((img) => img)
+      : ["https://i.sstatic.net/y9DpT.jpg"];
   const currentImage = images[imageIndex];
   const isVideo = currentImage.endsWith(".mp4");
 
