@@ -1,4 +1,5 @@
 import Room from "../models/Room.model.js";
+import Booking from "../models/Booking.model.js";
 
 /* ---------------- GET ALL ROOMS (public) ---------------- */
 export const getAllRooms = async (req, res) => {
@@ -62,16 +63,6 @@ export const getRoomById = async (req, res) => {
 /* ---------------- CREATE ROOM (admin) ---------------- */
 export const createRoom = async (req, res) => {
   try {
-    if (req.files) {
-      // show each file object for debugging
-      const list = Array.isArray(req.files)
-        ? req.files
-        : Object.values(req.files).flat();
-      list.forEach((f, i) =>
-        console.log(`file[${i}] keys:`, Object.keys(f), f),
-      );
-    }
-
     if (req.body && !req.files) {
       console.warn("createRoom: no files object on request");
       if (req.is("multipart/form-data")) {
@@ -125,14 +116,6 @@ export const createRoom = async (req, res) => {
 /* ---------------- UPDATE ROOM (admin) ---------------- */
 export const updateRoom = async (req, res) => {
   try {
-    if (req.files) {
-      const list = Array.isArray(req.files)
-        ? req.files
-        : Object.values(req.files).flat();
-      list.forEach((f, i) =>
-        console.log(`file[${i}] keys:`, Object.keys(f), f),
-      );
-    }
     if (req.body && !req.files) {
       console.warn("updateRoom: no files object on request");
       if (req.is("multipart/form-data")) {

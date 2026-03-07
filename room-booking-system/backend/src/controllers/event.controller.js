@@ -108,14 +108,6 @@ export const createEvent = async (req, res) => {
 /* ---------------- UPDATE EVENT (admin) ---------------- */
 export const updateEvent = async (req, res) => {
   try {
-    if (req.files) {
-      const list = Array.isArray(req.files)
-        ? req.files
-        : Object.values(req.files).flat();
-      list.forEach((f, i) =>
-        console.log(`file[${i}] keys:`, Object.keys(f), f),
-      );
-    }
     if (req.body && !req.files) {
       console.warn("updateEvent: no files object on request");
       if (req.is("multipart/form-data")) {
