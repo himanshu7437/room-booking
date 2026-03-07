@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 5000;
 
 const allowedOrigins =
   process.env.NODE_ENV === "production"
-    ? ["https://luxstay-sand.vercel.app"]
+    ? ["https://luxstay-sand.vercel.app", "https://room-booking-ivory.vercel.app/login"]
     : ["http://localhost:5173"];
 
 /* ---------- Create HTTP Server ---------- */

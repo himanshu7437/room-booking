@@ -17,7 +17,8 @@ app.use(express.urlencoded({ extended: true }));
 
 // Enable CORS
 const allowedOrigins = [
-  "https://luxstay-sand.vercel.app"
+  "https://luxstay-sand.vercel.app",
+  "https://room-booking-ivory.vercel.app/login"
 ];
 
 app.use(
