@@ -19,6 +19,8 @@ app.use(express.urlencoded({ extended: true }));
 const allowedOrigins = [
   "https://luxstay-sand.vercel.app",
   "https://room-booking-ivory.vercel.app",
+  "http://localhost:5173",
+  "http://localhost:5174"
 ];
 
 app.use(
