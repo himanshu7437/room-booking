@@ -1,25 +1,21 @@
 import dotenv from "dotenv";
 dotenv.config();
-import nodemailer from 'nodemailer';
 
-// Create transporter using Gmail SMTP or other service
-const transporter = nodemailer.createTransport({
-  service: process.env.EMAIL_SERVICE || 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS, // Use Gmail App Password in production
-  },
-});
+import { sendEmail as nodemailerSend } from "./providers/nodemailerProvider.js";
+import { sendEmail as resendSend } from "./providers/resendProvider.js";
+
+const emailProvider =
+  process.env.EMAIL_PROVIDER === "resend"
+    ? resendSend
+    : nodemailerSend;
 
 /**
- * Helper to send an email
- * @param {Object} mailOptions - nodemailer mail options
+ * Helper to send email using selected provider
  */
 const sendEmail = async (mailOptions) => {
   try {
-    await transporter.sendMail(mailOptions);
+    await emailProvider(mailOptions);
   } catch (error) {
-    // Throw error so calling function can handle logging or retries
     throw new Error(`Email sending failed: ${error.message}`);
   }
 };
@@ -29,12 +25,12 @@ const sendEmail = async (mailOptions) => {
  */
 export const sendBookingRequestToCustomer = async (booking) => {
   const { customer, checkIn, checkOut, room } = booking;
-  const roomName = room?.name || 'Selected Room';
+  const roomName = room?.name || "Selected Room";
 
   const mailOptions = {
     from: `"Booking System" <${process.env.EMAIL_USER}>`,
     to: customer.email,
-    subject: 'Booking Request Received – Awaiting Confirmation',
+    subject: "Booking Request Received – Awaiting Confirmation",
     text: `
 Dear ${customer.name},
 
@@ -53,7 +49,7 @@ If you have any questions, feel free to contact us.
 
 Best regards,
 LuxStay Team
-    `,
+`,
   };
 
   await sendEmail(mailOptions);
@@ -64,12 +60,12 @@ LuxStay Team
  */
 export const sendNewBookingRequestToAdmin = async (booking) => {
   const { customer, checkIn, checkOut, room } = booking;
-  const roomName = room?.name || 'Unknown Room';
+  const roomName = room?.name || "Unknown Room";
 
   const mailOptions = {
     from: `"Booking System" <${process.env.EMAIL_USER}>`,
     to: process.env.ADMIN_EMAIL,
-    subject: 'New Booking Request – Action Required',
+    subject: "New Booking Request – Action Required",
     text: `
 New booking request received!
 
@@ -88,23 +84,23 @@ Booking ID: ${booking._id}
 Please review and confirm/reject in the admin dashboard as soon as possible.
 
 LuxStay System
-    `,
+`,
   };
 
   await sendEmail(mailOptions);
 };
 
 /**
- * 3. Final confirmation email to customer (on approval)
+ * 3. Final confirmation email to customer
  */
 export const sendBookingConfirmedToCustomer = async (booking) => {
   const { customer, checkIn, checkOut, room } = booking;
-  const roomName = room?.name || 'Selected Room';
+  const roomName = room?.name || "Selected Room";
 
   const mailOptions = {
     from: `"Booking System" <${process.env.EMAIL_USER}>`,
     to: customer.email,
-    subject: 'Your Booking is Confirmed!',
+    subject: "Your Booking is Confirmed!",
     text: `
 Dear ${customer.name},
 
@@ -120,14 +116,14 @@ We look forward to welcoming you!
 
 Best regards,
 LuxStay Team
-    `,
+`,
   };
 
   await sendEmail(mailOptions);
 };
 
 /**
- * 4. Booking rejection email to customer
+ * 4. Booking rejection email
  */
 export const sendBookingRejectedToCustomer = async (booking) => {
   const { customer } = booking;
@@ -135,7 +131,7 @@ export const sendBookingRejectedToCustomer = async (booking) => {
   const mailOptions = {
     from: `"Booking System" <${process.env.EMAIL_USER}>`,
     to: customer.email,
-    subject: 'Booking Request Update',
+    subject: "Booking Request Update",
     text: `
 Dear ${customer.name},
 
@@ -147,7 +143,7 @@ We apologize for any inconvenience.
 
 Best regards,
 LuxStay Team
-    `,
+`,
   };
 
   await sendEmail(mailOptions);

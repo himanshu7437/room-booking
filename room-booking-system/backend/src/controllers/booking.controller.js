@@ -1,6 +1,7 @@
 import Booking from '../models/Booking.model.js';
 import Room from '../models/Room.model.js';
-import { sendBookingRequestToCustomer, sendNewBookingRequestToAdmin, sendBookingConfirmedToCustomer, sendBookingRejectedToCustomer } from '../utils/email.js';
+import { sendBookingRequestToCustomer, sendNewBookingRequestToAdmin, sendBookingConfirmedToCustomer, sendBookingRejectedToCustomer } from '../utils/emails/emailService.js';
+
 
 // Helper: Check overlapping bookings
 const hasConflict = async (roomId, checkIn, checkOut, excludeBookingId = null) => {
